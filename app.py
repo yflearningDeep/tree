@@ -102,4 +102,5 @@ for i in range(20): # 循环刷新让灯光“闪烁”
 st.balloons() # 刷出气球
 st.markdown("---")
 st.write("特别定制版 | 仅献给小姝")
-st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3") # 背景音乐
+st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3") # 背景
+
