@@ -1,106 +1,104 @@
 import streamlit as st
+import plotly.graph_objects as go
+import numpy as np
 import time
-import random
 
-# 页面配置：设置标题和图标
-st.set_page_config(page_title="小姝的专属圣诞礼物", page_icon="🎄", layout="centered")
+# 页面基础设置
+st.set_page_config(page_title="送给小姝的3D圣诞树", page_icon="🎄")
 
-# --- 豪华视觉样式 (CSS) ---
 st.markdown("""
     <style>
-    /* 全局背景设为深邃夜空黑 */
-    .stApp {
-        background: linear-gradient(to bottom, #000428, #004e92);
-        color: white;
-    }
-    
-    /* 标题动画：流光溢彩效果 */
-    .title-text {
-        font-family: 'Microsoft YaHei', sans-serif;
-        font-size: 3rem !important;
-        text-align: center;
-        background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #ff00ff, #ff0000);
-        background-size: 400% 400%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: gradient 5s ease infinite;
-        font-weight: bold;
-        text-shadow: 2px 2px 10px rgba(255,255,255,0.3);
-    }
-    
-    @keyframes gradient {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-
-    /* 树体居中 */
-    .tree-container {
-        font-family: 'Courier New', Courier, monospace;
-        text-align: center;
-        line-height: 1.1;
-        font-size: 22px;
-    }
-    
-    /* 底部祝福语样式 */
-    .wish-text {
-        font-size: 1.2rem;
-        text-align: center;
-        color: #FFD700;
-        margin-top: 20px;
-        font-style: italic;
-    }
+    .stApp { background-color: #0E1117; }
+    h1 { text-align: center; color: #FF4B4B; font-family: 'Microsoft YaHei'; }
+    .wish { text-align: center; color: #FFD700; font-size: 1.5rem; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 顶层内容 ---
-st.markdown('<h1 class="title-text">✨ 小姝 圣诞快乐 ✨</h1>', unsafe_allow_html=True)
-st.snow() # 持续下雪特效
+st.markdown("<h1>✨ 小姝，圣诞快乐 ✨</h1>", unsafe_allow_html=True)
+st.markdown("<p class='wish'>这是一个可以旋转、缩放的专属圣诞树 🎁</p>", unsafe_allow_html=True)
 
-# --- 动态圣诞树逻辑 ---
+# --- 核心：构建 3D 圣诞树数据 ---
+def create_3d_tree():
+    # 生成螺旋上升的树体
+    z = np.linspace(0, 10, 1000)
+    r = 10 - z  # 越往上半径越小
+    theta = 15 * z  # 旋转角度
+
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+
+    # 树主体（绿色螺旋）
+    tree = go.Scatter3d(
+        x=x, y=y, z=z,
+        mode='lines',
+        line=dict(color='green', width=10),
+        name='圣诞树'
+    )
+
+    # 随机生成彩色装饰灯
+    num_lights = 100
+    lz = np.random.uniform(0, 10, num_lights)
+    lr = 10 - lz
+    ltheta = np.random.uniform(0, 2 * np.pi * 15, num_lights)
+    lx = lr * np.cos(ltheta)
+    ly = lr * np.sin(ltheta)
+    
+    # 彩色灯泡
+    lights = go.Scatter3d(
+        x=lx, y=ly, z=lz,
+        mode='markers',
+        marker=dict(
+            size=random.sample(range(5, 12), 1)[0],
+            color=random.sample(['red', 'yellow', 'blue', 'white', 'magenta', 'cyan'], 1)[0],
+            symbol='circle'
+        ),
+        name='彩灯'
+    )
+
+    # 顶部的星星
+    star = go.Scatter3d(
+        x=[0], y=[0], z=[10.5],
+        mode='markers',
+        marker=dict(size=15, color='gold', symbol='diamond'),
+        name='星光'
+    )
+
+    fig = go.Figure(data=[tree, lights, star])
+
+    # 设置布局，隐藏坐标轴
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(l=0, r=0, b=0, t=0),
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            aspectmode='cube'
+        ),
+        showlegend=False
+    )
+    return fig
+
+# 动态闪烁效果
 placeholder = st.empty()
 
-def create_luxury_tree():
-    # 装饰物和色彩
-    decorations = ["🔴", "🟡", "🔵", "💖", "❄️", "🎁", "✨"]
-    tree_layers = 15
-    tree_output = "<div class='tree-container'>"
-    tree_output += "<span style='font-size: 40px;'>⭐</span><br>" # 顶部的星
-    
-    for i in range(1, tree_layers):
-        # 每一行随机生成装饰物和绿叶
-        row = ""
-        for j in range(i * 2 - 1):
-            if random.random() < 0.2: # 20% 概率出现装饰物
-                row += random.choice(decorations)
-            else:
-                row += "🎄"
-        tree_output += f"{row}<br>"
-    
-    # 树干
-    tree_output += "<span style='font-size: 25px;'>🤎🤎🤎</span><br>"
-    tree_output += "<span style='font-size: 25px;'>🤎🤎🤎</span>"
-    tree_output += "</div>"
-    return tree_output
+# 自动撒雪花
+st.snow()
 
-# --- 交互动画循环 ---
-for i in range(20): # 循环刷新让灯光“闪烁”
-    with placeholder.container():
-        st.markdown(create_luxury_tree(), unsafe_allow_html=True)
-        
-        # 专属小姝的浪漫文字（随机切换）
-        wishes = [
-            "小姝，愿你的眼中总有光，心中总有爱。🎁",
-            "在这个冬日，希望这棵树能带给你温暖。🌟",
-            "叮叮当，叮叮当，小姝的礼物在身旁。💖",
-            "愿这闪烁的灯火，照亮你新的一年。❄️"
-        ]
-        st.markdown(f'<p class="wish-text">{random.choice(wishes)}</p>', unsafe_allow_html=True)
-        time.sleep(1.2)
+# 显示 3D 图像
+fig = create_3d_tree()
+st.plotly_chart(fig, use_container_width=True)
 
-# --- 底部彩蛋 ---
-st.balloons() # 刷出气球
-st.markdown("---")
-st.write("特别定制版 | 仅献给小姝")
-st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3") # 背景
+# 底部留言板
+st.info(f"💡 提示小姝：可以用手指或鼠标按住这棵树旋转查看哦！")
 
+# 增加一个温馨的文本区
+with st.expander("点击开启给小姝的悄悄话"):
+    st.write("""
+    小姝：
+    希望这棵会旋转的圣诞树能给你带来一点点惊喜。
+    愿你的生活像这些彩灯一样，永远灿烂夺目！
+    """)
+
+st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
