@@ -2,126 +2,83 @@ import streamlit as st
 
 st.set_page_config(page_title="Merry Christmas for 小姝", layout="wide")
 
-# 使用 HTML/CSS/JavaScript 构建高级 Three.js 动画
+# 强制隐藏 Streamlit 默认的白边和菜单，打造沉浸式纯黑背景
 st.markdown("""
-<div id="tree-canvas-container">
-    <div class="overlay">
-        <h1 class="glow-text">Merry Christmas</h1>
-        <p class="name-tag">✨ For 小姝 ✨</p>
-    </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-    const container = document.getElementById('tree-canvas-container');
-    const scene = new THREE.Scene();
-    const camera = new THREE.Camera();
-    camera.position.z = 1;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
-
-    // Three.js 着色器逻辑：模拟你图中那种金色粒子螺旋
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    const material = new THREE.ShaderMaterial({
-        uniforms: {
-            time: { value: 1.0 },
-            resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-        },
-        vertexShader: `
-            void main() {
-                gl_Position = vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            uniform float time;
-            uniform vec2 resolution;
-
-            void main() {
-                vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / min(resolution.y, resolution.x);
-                vec3 finalColor = vec3(0.0);
-                
-                // 模拟金色螺旋线
-                for(float i=0.0; i<40.0; i++) {
-                    float t = time * 0.5 + i * 0.15;
-                    float r = 0.45 * (1.0 - i/40.0); // 向上收缩形成尖顶
-                    vec2 p = vec2(cos(t), sin(t)) * r;
-                    p.y += i * 0.02 - 0.4; // 树的高度分布
-                    
-                    float dist = length(uv - p);
-                    float glow = 0.0015 / dist; // 辉光效果
-                    finalColor += vec3(1.0, 0.85, 0.4) * glow; // 金色调
-                }
-                
-                // 添加背景星光
-                float stars = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
-                if(stars > 0.998) finalColor += vec3(0.5);
-
-                gl_FragColor = vec4(finalColor, 1.0);
-            }
-        `
-    });
-
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    function animate(t) {
-        material.uniforms.time.value = t / 1000;
-        renderer.render(scene, camera);
-        requestAnimationFrame(animate);
-    }
-    animate();
-
-    window.addEventListener('resize', () => {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
-    });
-</script>
-
 <style>
-    /* 强制全屏黑底 */
-    [data-testid="stAppViewContainer"] {
-        background-color: #000 !important;
-    }
-    #tree-canvas-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 1;
-    }
-    .overlay {
-        position: absolute;
-        top: 15%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        z-index: 10;
-        width: 100%;
-    }
-    .glow-text {
-        font-family: 'Georgia', serif;
-        color: #FFD700;
-        font-size: 3.5rem;
-        font-style: italic;
-        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
-        margin: 0;
-    }
-    .name-tag {
-        color: white;
-        font-size: 1.2rem;
-        letter-spacing: 4px;
-        margin-top: 10px;
-    }
-    /* 隐藏所有多余的 Streamlit 元素 */
-    header, footer, [data-testid="stToolbar"] { visibility: hidden; }
+    [data-testid="stAppViewContainer"] { background-color: #000000 !important; }
+    [data-testid="stHeader"] { background: rgba(0,0,0,0); }
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    .stAudio { margin-top: 20px; filter: invert(100%); } /* 音乐播放器适配黑夜模式 */
 </style>
 """, unsafe_allow_html=True)
 
-# 雪花
+# 核心代码：使用 Canvas + JS 绘制高精度自动旋转金色粒子树
+st.markdown("""
+<div style="text-align: center; margin-top: 50px;">
+    <h1 style="color: #FFD700; font-family: 'Times New Roman', serif; font-style: italic; font-size: 3.5rem; text-shadow: 0 0 20px #FFD700; margin-bottom: 0;">Merry Christmas</h1>
+    <p style="color: #ffffff; font-size: 1.2rem; letter-spacing: 5px; opacity: 0.8;">✨ For 小姝 ✨</p>
+    <canvas id="treeCanvas" style="background: #000; width: 100%; max-width: 600px; height: 500px;"></canvas>
+    <p style="color: #FFD700; font-size: 0.9rem; margin-top: 30px; letter-spacing: 2px;">愿你在闪烁的光芒中，遇见所有的美好</p>
+</div>
+
+<script>
+    const canvas = document.getElementById('treeCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 600;
+    canvas.height = 500;
+
+    let angle = 0;
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        angle += 0.02; // 旋转速度
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height - 50;
+
+        // 绘制数千颗金色粒子形成螺旋
+        for (let i = 0; i < 1500; i++) {
+            // 粒子的高度
+            let y = i * 0.25;
+            // 越往上半径越小
+            let radius = (500 - y) * 0.35;
+            
+            // 螺旋旋转算法
+            let currentAngle = angle + i * 0.15;
+            let x = centerX + Math.cos(currentAngle) * radius;
+            
+            // 模拟 3D 透视：近大远小，近亮远暗
+            let scale = Math.sin(currentAngle) * 0.5 + 0.5;
+            let size = scale * 1.5 + 0.5;
+            let alpha = scale * 0.5 + 0.2;
+
+            ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.beginPath();
+            ctx.arc(x, centerY - y, size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 随机加一点点闪烁的星星作为背景
+            if (i % 50 === 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`;
+                ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 1, 1);
+            }
+        }
+        
+        // 顶部的星
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '30px serif';
+        ctx.fillText('⭐', centerX - 15, centerY - 400);
+
+        requestAnimationFrame(draw);
+    }
+
+    draw();
+</script>
+""", unsafe_allow_html=True)
+
+# 撒雪花
 st.snow()
+
 # 音乐
 st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
