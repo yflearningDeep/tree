@@ -1,104 +1,123 @@
 import streamlit as st
 import plotly.graph_objects as go
 import numpy as np
-import time
+import random  # 修复报错：必须导入 random 模块
 
 # 页面基础设置
 st.set_page_config(page_title="送给小姝的3D圣诞树", page_icon="🎄")
 
+# 自定义样式：黑底金字氛围感
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; }
-    h1 { text-align: center; color: #FF4B4B; font-family: 'Microsoft YaHei'; }
-    .wish { text-align: center; color: #FFD700; font-size: 1.5rem; margin-bottom: 20px; }
+    .stApp { background-color: #000000; }
+    .title-text {
+        text-align: center;
+        color: #FFD700;
+        font-family: 'serif';
+        text-shadow: 0 0 20px #FFD700;
+        font-size: 3rem;
+        margin-top: -50px;
+    }
+    .subtitle {
+        text-align: center;
+        color: #FFFFFF;
+        font-size: 1.2rem;
+        opacity: 0.8;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown("<h1>✨ 小姝，圣诞快乐 ✨</h1>", unsafe_allow_html=True)
-st.markdown("<p class='wish'>这是一个可以旋转、缩放的专属圣诞树 🎁</p>", unsafe_allow_html=True)
+st.markdown("<h1 class='title-text'>Merry Christmas</h1>", unsafe_allow_html=True)
+st.markdown("<p class='subtitle'>✨ 小姝，这是送给你的专属 3D 圣诞树 ✨</p>", unsafe_allow_html=True)
 
-# --- 核心：构建 3D 圣诞树数据 ---
 def create_3d_tree():
-    # 生成螺旋上升的树体
-    z = np.linspace(0, 10, 1000)
-    r = 10 - z  # 越往上半径越小
-    theta = 15 * z  # 旋转角度
-
+    # 1. 创建金色螺旋线（主树体）
+    z = np.linspace(0, 10, 500)
+    r = 10 - z
+    theta = 12 * z
     x = r * np.cos(theta)
     y = r * np.sin(theta)
 
-    # 树主体（绿色螺旋）
     tree = go.Scatter3d(
         x=x, y=y, z=z,
         mode='lines',
-        line=dict(color='green', width=10),
-        name='圣诞树'
+        line=dict(color='#FFD700', width=8),
+        name='Merry Christmas'
     )
 
-    # 随机生成彩色装饰灯
-    num_lights = 100
-    lz = np.random.uniform(0, 10, num_lights)
+    # 2. 创建背景星光（散落的白点）
+    star_count = 150
+    sz = np.random.uniform(0, 12, star_count)
+    sr = np.random.uniform(0, 12, star_count)
+    stheta = np.random.uniform(0, 2 * np.pi, star_count)
+    sx = sr * np.cos(stheta)
+    sy = sr * np.sin(stheta)
+
+    stars = go.Scatter3d(
+        x=sx, y=sy, z=sz,
+        mode='markers',
+        marker=dict(size=2, color='white', opacity=0.5),
+        name='星辰'
+    )
+
+    # 3. 树上的彩色装饰点（闪烁感）
+    light_count = 60
+    lz = np.random.uniform(0, 10, light_count)
     lr = 10 - lz
-    ltheta = np.random.uniform(0, 2 * np.pi * 15, num_lights)
+    ltheta = np.random.uniform(0, 20 * np.pi, light_count)
     lx = lr * np.cos(ltheta)
     ly = lr * np.sin(ltheta)
     
-    # 彩色灯泡
     lights = go.Scatter3d(
         x=lx, y=ly, z=lz,
         mode='markers',
         marker=dict(
-            size=random.sample(range(5, 12), 1)[0],
-            color=random.sample(['red', 'yellow', 'blue', 'white', 'magenta', 'cyan'], 1)[0],
-            symbol='circle'
+            size=6,
+            color=[random.choice(['#FF0000', '#FFD700', '#FFFFFF', '#00FF00']) for _ in range(light_count)],
+            opacity=0.9
         ),
-        name='彩灯'
+        name='装饰灯'
     )
 
-    # 顶部的星星
-    star = go.Scatter3d(
+    # 4. 顶部的星
+    top_star = go.Scatter3d(
         x=[0], y=[0], z=[10.5],
         mode='markers',
-        marker=dict(size=15, color='gold', symbol='diamond'),
-        name='星光'
+        marker=dict(size=15, color='#FFD700', symbol='diamond'),
+        name='顶星'
     )
 
-    fig = go.Figure(data=[tree, lights, star])
+    fig = go.Figure(data=[tree, stars, lights, top_star])
 
-    # 设置布局，隐藏坐标轴
+    # 布局：全黑背景 + 初始旋转视角
     fig.update_layout(
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(l=0, r=0, b=0, t=0),
+        template="plotly_dark",
+        paper_bgcolor='black',
+        plot_bgcolor='black',
         scene=dict(
             xaxis=dict(visible=False),
             yaxis=dict(visible=False),
             zaxis=dict(visible=False),
+            camera=dict(eye=dict(x=1.5, y=1.5, z=0.8)),
             aspectmode='cube'
         ),
+        margin=dict(l=0, r=0, b=0, t=0),
         showlegend=False
     )
     return fig
 
-# 动态闪烁效果
-placeholder = st.empty()
-
-# 自动撒雪花
+# 自动下雪
 st.snow()
 
-# 显示 3D 图像
-fig = create_3d_tree()
-st.plotly_chart(fig, use_container_width=True)
+# 显示 3D 树
+st.plotly_chart(create_3d_tree(), use_container_width=True, config={'displayModeBar': False})
 
-# 底部留言板
-st.info(f"💡 提示小姝：可以用手指或鼠标按住这棵树旋转查看哦！")
+# 底部浪漫语
+st.markdown("""
+    <div style='text-align: center; color: #FFD700; padding: 20px;'>
+        <p>你可以按住这棵树任意旋转，每个角度都是我对你的祝福。</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-# 增加一个温馨的文本区
-with st.expander("点击开启给小姝的悄悄话"):
-    st.write("""
-    小姝：
-    希望这棵会旋转的圣诞树能给你带来一点点惊喜。
-    愿你的生活像这些彩灯一样，永远灿烂夺目！
-    """)
-
+# 音乐
 st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
