@@ -1,119 +1,127 @@
 import streamlit as st
 
-# 页面配置
-st.set_page_config(page_title="Merry Christmas 小姝", layout="centered")
+st.set_page_config(page_title="Merry Christmas for 小姝", layout="wide")
 
-# 核心：纯 HTML + CSS 动画代码
-# 这种方式可以直接控制每一条线条的粗细、金色渐变和自动旋转
+# 使用 HTML/CSS/JavaScript 构建高级 Three.js 动画
 st.markdown("""
-<div class="container">
-    <div class="tree-container">
-        <h1 class="merry">Merry Christmas</h1>
-        <p class="to-who">✨ For 小姝 ✨</p>
-        
-        <div class="tree">
-            <div class="star">⭐</div>
-            <div class="spirals">
-                <div class="spiral s1"></div>
-                <div class="spiral s2"></div>
-                <div class="spiral s3"></div>
-            </div>
-            <div class="trunk"></div>
-        </div>
-        
-        <div class="footer">愿你在这闪烁光芒中，遇见所有的美好。</div>
+<div id="tree-canvas-container">
+    <div class="overlay">
+        <h1 class="glow-text">Merry Christmas</h1>
+        <p class="name-tag">✨ For 小姝 ✨</p>
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    const container = document.getElementById('tree-canvas-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.Camera();
+    camera.position.z = 1;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    container.appendChild(renderer.domElement);
+
+    // Three.js 着色器逻辑：模拟你图中那种金色粒子螺旋
+    const geometry = new THREE.PlaneGeometry(2, 2);
+    const material = new THREE.ShaderMaterial({
+        uniforms: {
+            time: { value: 1.0 },
+            resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+        },
+        vertexShader: `
+            void main() {
+                gl_Position = vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform float time;
+            uniform vec2 resolution;
+
+            void main() {
+                vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / min(resolution.y, resolution.x);
+                vec3 finalColor = vec3(0.0);
+                
+                // 模拟金色螺旋线
+                for(float i=0.0; i<40.0; i++) {
+                    float t = time * 0.5 + i * 0.15;
+                    float r = 0.45 * (1.0 - i/40.0); // 向上收缩形成尖顶
+                    vec2 p = vec2(cos(t), sin(t)) * r;
+                    p.y += i * 0.02 - 0.4; // 树的高度分布
+                    
+                    float dist = length(uv - p);
+                    float glow = 0.0015 / dist; // 辉光效果
+                    finalColor += vec3(1.0, 0.85, 0.4) * glow; // 金色调
+                }
+                
+                // 添加背景星光
+                float stars = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
+                if(stars > 0.998) finalColor += vec3(0.5);
+
+                gl_FragColor = vec4(finalColor, 1.0);
+            }
+        `
+    });
+
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    function animate(t) {
+        material.uniforms.time.value = t / 1000;
+        renderer.render(scene, camera);
+        requestAnimationFrame(animate);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+    });
+</script>
+
 <style>
-/* 纯黑背景 */
-[data-testid="stAppViewContainer"] {
-    background-color: #000 !important;
-}
-
-.container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 80vh;
-    flex-direction: column;
-}
-
-.merry {
-    font-family: 'Times New Roman', serif;
-    color: #FFD700;
-    text-shadow: 0 0 15px #FFD700;
-    font-style: italic;
-    font-size: 3.5rem;
-    margin-bottom: 0px;
-}
-
-.to-who {
-    color: #fff;
-    font-size: 1.2rem;
-    letter-spacing: 5px;
-    margin-bottom: 30px;
-}
-
-/* 圣诞树主体 */
-.tree {
-    position: relative;
-    width: 200px;
-    height: 300px;
-    display: flex;
-    justify-content: center;
-}
-
-.star {
-    position: absolute;
-    top: -40px;
-    font-size: 40px;
-    filter: drop-shadow(0 0 10px gold);
-    z-index: 10;
-}
-
-/* 金色螺旋线核心逻辑 */
-.spiral {
-    position: absolute;
-    top: 0;
-    width: 150px;
-    height: 250px;
-    border-radius: 50%;
-    border: 3px solid transparent;
-    border-bottom: 5px solid #FFD700; /* 金色边框 */
-    box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
-    animation: rotate 3s linear infinite;
-}
-
-/* 不同层次的螺旋实现层次感 */
-.s1 { transform: scale(0.2); animation-duration: 2s; top: -50px;}
-.s2 { transform: scale(0.6); animation-duration: 3s; top: 0px;}
-.s3 { transform: scale(1.0); animation-duration: 4s; top: 50px;}
-
-@keyframes rotate {
-    0% { transform: rotateX(70deg) rotateZ(0deg); }
-    100% { transform: rotateX(70deg) rotateZ(360deg); }
-}
-
-.trunk {
-    position: absolute;
-    bottom: -20px;
-    width: 20px;
-    height: 40px;
-    background: linear-gradient(to right, #331a00, #663300);
-}
-
-.footer {
-    margin-top: 100px;
-    color: #FFD700;
-    font-size: 0.9rem;
-    letter-spacing: 2px;
-}
+    /* 强制全屏黑底 */
+    [data-testid="stAppViewContainer"] {
+        background-color: #000 !important;
+    }
+    #tree-canvas-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+    }
+    .overlay {
+        position: absolute;
+        top: 15%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        z-index: 10;
+        width: 100%;
+    }
+    .glow-text {
+        font-family: 'Georgia', serif;
+        color: #FFD700;
+        font-size: 3.5rem;
+        font-style: italic;
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        margin: 0;
+    }
+    .name-tag {
+        color: white;
+        font-size: 1.2rem;
+        letter-spacing: 4px;
+        margin-top: 10px;
+    }
+    /* 隐藏所有多余的 Streamlit 元素 */
+    header, footer, [data-testid="stToolbar"] { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
-# 雪花特效
+# 雪花
 st.snow()
-
 # 音乐
 st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
