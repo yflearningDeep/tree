@@ -1,84 +1,98 @@
 import streamlit as st
+import streamlit.components.v1 as components
 
+# 页面基础配置
 st.set_page_config(page_title="Merry Christmas for 小姝", layout="wide")
 
-# 强制隐藏 Streamlit 默认的白边和菜单，打造沉浸式纯黑背景
+# 强制全屏纯黑背景
 st.markdown("""
+    <style>
+    .stApp { background-color: #000000 !important; }
+    header, footer { visibility: hidden !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 专属标题和祝福
+st.markdown("""
+    <div style="text-align: center; padding: 20px;">
+        <h1 style="color: #FFD700; font-family: 'Times New Roman', serif; font-style: italic; font-size: 3rem; text-shadow: 0 0 15px #FFD700;">Merry Christmas</h1>
+        <p style="color: #ffffff; font-size: 1.2rem; letter-spacing: 5px; opacity: 0.8;">✨ For 小姝 ✨</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 核心：使用独立组件渲染自动旋转的金色粒子树
+# 这段代码直接在沙盒中运行，100% 能够显示
+tree_html = """
+<canvas id="treeCanvas"></canvas>
 <style>
-    [data-testid="stAppViewContainer"] { background-color: #000000 !important; }
-    [data-testid="stHeader"] { background: rgba(0,0,0,0); }
-    footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
-    .stAudio { margin-top: 20px; filter: invert(100%); } /* 音乐播放器适配黑夜模式 */
+    body { margin: 0; background: black; overflow: hidden; display: flex; justify-content: center; }
+    canvas { background: black; }
 </style>
-""", unsafe_allow_html=True)
-
-# 核心代码：使用 Canvas + JS 绘制高精度自动旋转金色粒子树
-st.markdown("""
-<div style="text-align: center; margin-top: 50px;">
-    <h1 style="color: #FFD700; font-family: 'Times New Roman', serif; font-style: italic; font-size: 3.5rem; text-shadow: 0 0 20px #FFD700; margin-bottom: 0;">Merry Christmas</h1>
-    <p style="color: #ffffff; font-size: 1.2rem; letter-spacing: 5px; opacity: 0.8;">✨ For 小姝 ✨</p>
-    <canvas id="treeCanvas" style="background: #000; width: 100%; max-width: 600px; height: 500px;"></canvas>
-    <p style="color: #FFD700; font-size: 0.9rem; margin-top: 30px; letter-spacing: 2px;">愿你在闪烁的光芒中，遇见所有的美好</p>
-</div>
-
 <script>
     const canvas = document.getElementById('treeCanvas');
     const ctx = canvas.getContext('2d');
+
+    // 适配屏幕大小
     canvas.width = 600;
     canvas.height = 500;
 
     let angle = 0;
 
-    function draw() {
+    function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        angle += 0.02; // 旋转速度
+        angle += 0.015; // 自动旋转的速度
 
         const centerX = canvas.width / 2;
         const centerY = canvas.height - 50;
 
-        // 绘制数千颗金色粒子形成螺旋
-        for (let i = 0; i < 1500; i++) {
-            // 粒子的高度
-            let y = i * 0.25;
-            // 越往上半径越小
-            let radius = (500 - y) * 0.35;
+        // 渲染 1200 颗粒子
+        for (let i = 0; i < 1200; i++) {
+            let y = i * 0.3; // 粒子高度
+            let radius = (400 - y) * 0.3; // 随高度变细
             
-            // 螺旋旋转算法
-            let currentAngle = angle + i * 0.15;
-            let x = centerX + Math.cos(currentAngle) * radius;
+            // 核心螺旋算法
+            let spiralAngle = angle + (i * 0.1); 
+            let x = centerX + Math.cos(spiralAngle) * radius;
             
-            // 模拟 3D 透视：近大远小，近亮远暗
-            let scale = Math.sin(currentAngle) * 0.5 + 0.5;
-            let size = scale * 1.5 + 0.5;
-            let alpha = scale * 0.5 + 0.2;
+            // 3D 深度感：利用正弦波模拟近大远小、近亮远暗
+            let perspective = Math.sin(spiralAngle);
+            let size = perspective * 1.5 + 1.8;
+            let alpha = perspective * 0.5 + 0.5;
 
-            ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
             ctx.beginPath();
+            ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`; // 金粉颜色
             ctx.arc(x, centerY - y, size, 0, Math.PI * 2);
             ctx.fill();
-            
-            // 随机加一点点闪烁的星星作为背景
-            if (i % 50 === 0) {
+
+            // 随机星光点缀
+            if (i % 60 === 0) {
                 ctx.fillStyle = `rgba(255, 255, 255, ${Math.random()})`;
-                ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 1, 1);
+                ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1.5, 1.5);
             }
         }
-        
+
         // 顶部的星
         ctx.fillStyle = '#FFD700';
-        ctx.font = '30px serif';
-        ctx.fillText('⭐', centerX - 15, centerY - 400);
+        ctx.font = '35px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('⭐', centerX, centerY - 410);
 
-        requestAnimationFrame(draw);
+        requestAnimationFrame(animate);
     }
-
-    draw();
+    animate();
 </script>
-""", unsafe_allow_html=True)
+"""
 
-# 撒雪花
+# 调用组件渲染，设置足够的高度
+components.html(tree_html, height=550)
+
+# 底部留言
+st.markdown("""
+    <div style="text-align: center; color: #FFD700; font-size: 0.9rem; margin-top: 20px;">
+        <p>愿这棵不停转动的星光树，带给你整个冬天的温暖。</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 浪漫雪花和背景音
 st.snow()
-
-# 音乐
 st.audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3")
